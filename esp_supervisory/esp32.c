@@ -5,17 +5,6 @@
 #include "driver/timer.h"
 #include "fsm.h"
 
-#define GPIO_OUTPUT_A    2
-#define GPIO_OUTPUT_B    4
-#define GPIO_OUTPUT_C    5
-#define GPIO_OUTPUT_D    18
-#define GPIO_OUTPUT_E    19
-#define GPIO_OUTPUT_F    21
-#define GPIO_OUTPUT_G    22
-#define GPIO_OUTPUT_H    23
-#define GPIO_OUTPUT_PIN_SEL  ((1ULL<<GPIO_OUTPUT_A) |(1ULL<<GPIO_OUTPUT_B) |(1ULL<<GPIO_OUTPUT_C)|      (1ULL<<GPIO_OUTPUT_D)|(1ULL<<GPIO_OUTPUT_E)| (1ULL<<GPIO_OUTPUT_F)|(1ULL<<GPIO_OUTPUT_G)| (1ULL<<GPIO_OUTPUT_H))
-
-
 #define GPIO_INPUT_PB    15
 #define GPIO_INPUT_PIN_SEL  (1ULL<<GPIO_INPUT_PB)
 #define ESP_INTR_FLAG_DEFAULT 0
@@ -58,13 +47,6 @@ void pid(float input, float *output, float setpoint, float kp, float ki, float k
 
 void button_config(){
     gpio_config_t io_conf;
-
-    io_conf.intr_type = 0;
-    io_conf.mode = GPIO_MODE_DEF_OUTPUT;
-    io_conf.pin_bit_mask = GPIO_OUTPUT_PIN_SEL;
-    io_conf.pull_down_en = 0;
-    io_conf.pull_up_en = 0;
-    gpio_config(&io_conf);
     io_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL;
     io_conf.mode = GPIO_MODE_DEF_INPUT;
     io_conf.intr_type = GPIO_INTR_NEGEDGE; // Falling Edge
@@ -82,28 +64,24 @@ void timer_config(){
         .alarm_en = TIMER_ALARM_EN, 
         .auto_reload = TIMER_AUTORELOAD_DIS,
     }; 
-    // gunakan timer group dan hardware timer yang valid
+    
     timer_init(0, 0, &config); //TIMERG0, hw_timer[0]
     timer_set_counter_value(0, 0, 0x00000000ULL);
     timer_start(0, 0);
 }
 
-//static void IRAM_ATTR gpio_isr_handler (void* arg) {
-//    timer_get_counter_time_sec(0, 0, &current_time_sec);
-//    if (current_time_sec - last_time_sec > DELAY_S) {
-//        button = 1;
-//        //start_program = 1;
-//    }
-//}
-
 void main_control(void *pvParam){
 	while(1){
 		TickType_t xLastWakeTime1 = xTaskGetTickCount();
+
+        // Membaca data dari desktop agar bisa lanjut
         if(scanf("%f;%f;%f", &vel, &pos, &accel) == 3){
             next_valid = 1;
         }
-        if(next_valid == 1 ){ //&& start_program == 1
 
+        // Dijalankan setelah pembacaan berhasil
+        if(next_valid == 1 ){
+            // Melihat kondisi saat ini pada motor sebagai penentu kelanjutan state
             if(state == 1 && (vel >= 1.0 || pos >= 2.0)){
                 feed = 1;
             }
@@ -138,12 +116,10 @@ void main_control(void *pvParam){
             }
 
             pid(input, &output_pid, setpoint, Kp, Ki, Kd, 0.01);
+
+            // Mengirimkan sel dan output_pid ke desktop
             printf("%d;%.8f\r\n", sel, output_pid);
-            // Serial.print(sel);
-            // Serial.print(";");
-            // Serial.print(vel);
-            // Serial.print(";");
-            // Serial.println(output_pid);
+            
             next_valid = 0;
         }
         vTaskDelayUntil(&xLastWakeTime1, 30/portTICK_PERIOD_MS);
@@ -165,33 +141,12 @@ void button_task(void *pvParam){
 
 void app_main()
 {
-    gpio_config_t io_conf;
-    io_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL;
-    io_conf.mode = GPIO_MODE_DEF_INPUT;
-    io_conf.intr_type = GPIO_INTR_NEGEDGE; // Falling Edge
-    io_conf.pull_up_en = 1; // enable interrupt
-    io_conf.pull_down_en = 0;
-    gpio_config(&io_conf);
+    button_config();
+    timer_config();
 
-    timer_config_t config = {
-        .divider = TIMER_DIVIDER,
-        .counter_dir = TIMER_COUNT_UP, 
-        .counter_en = TIMER_START, 
-        .alarm_en = TIMER_ALARM_EN, 
-        .auto_reload = TIMER_AUTORELOAD_DIS,
-    }; 
-    // gunakan timer group dan hardware timer yang valid
-    timer_init(0, 0, &config); //TIMERG0, hw_timer[0]
-    timer_set_counter_value(0, 0, 0x00000000ULL);
-    timer_start(0, 0);
-    // button_config();
-    // timer_config();
-    //gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
-    //gpio_isr_handler_add(GPIO_INPUT_PB, gpio_isr_handler, (void*) GPIO_INPUT_PB);
-    //A uart read/write example without event queue;
-    // xTaskCreate(GPIO_INPUT_PB, "uart_echo_task", 1024, NULL, 10, GPIO_INPUT_PB);
-
+    // Task untuk button pada core 0
 	xTaskCreatePinnedToCore(button_task, "Button Task", 2048, NULL, 1, NULL, 0);
+    // Task untuk kontrol PID pada core 1
 	xTaskCreatePinnedToCore(main_control, "Main Task", 2048, NULL, 1, NULL, 1);
 
 }

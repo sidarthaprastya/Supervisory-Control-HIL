@@ -27,7 +27,6 @@ time_samp = 0.01   # 10 ms
 last_error = 0
 integral = 0
 
-
 curr_accel = 0
 
 x = [0, 0]
@@ -53,12 +52,10 @@ for i in range(100):
     curr_accel = (y[0] - y[1])/0.01
     x_axis.append(i)
     ydata.append(curr_accel)
-    # veldata.append(y[0])
     yin.append(setpoint)
 
   
 plt.plot(x_axis, ydata, label="Accel")
-    # plt.plot(x_axis, veldata, label="laplace1")
 plt.plot(x_axis, yin, label="Setpoint")
 plt.title("PID Acceleration")
 plt.xlabel("Time (x10 ms)")

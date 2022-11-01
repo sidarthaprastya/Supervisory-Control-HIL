@@ -42,7 +42,7 @@ void fsm(int *counter, int *button, int *feed_motor, int *state, int *select, fl
                 *select = 1;                //velocity
                 *setpoint = 1.0;           //10 m/s
                 *feed_motor = 0;
-		*button = 0;
+		        *button = 0;
             }
             else{
 
@@ -55,7 +55,7 @@ void fsm(int *counter, int *button, int *feed_motor, int *state, int *select, fl
                 *select = 0;
                 *setpoint = -1;
                 *feed_motor = 0;
-		*button = 0;
+		        *button = 0;
             }
             else{
 
@@ -68,7 +68,7 @@ void fsm(int *counter, int *button, int *feed_motor, int *state, int *select, fl
                 *select = 1;
                 *setpoint = 0.0;
                 *feed_motor = 0;
-		*button = 0;
+		        *button = 0;
             }
             else{
 

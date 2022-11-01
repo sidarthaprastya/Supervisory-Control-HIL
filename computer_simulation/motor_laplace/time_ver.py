@@ -2,8 +2,7 @@ import matplotlib.pyplot as plt
 
 def motor(input, output):
     output[1] = output[0]
-    # Insert to Laplace equation (10/s+10) with time samp = 10 ms
-    # output[0] = 0.0476 * input[0] + 0.0476 * input[1] + 0.9048 * output[1]
+    # Insert to Laplace equation (1/1.2s+1) with time samp = 10 ms
     output[0] = 0.00413 * input[0] + 0.00413 * input[1] + 0.992 * output[1]
     return output
 
@@ -14,15 +13,8 @@ x_axis = []
 ydata = []
 yin = []
 
-# for i in range(0, 10):
-#     x[1] = x[0]
-#     x[0] = 0
-#     y = motor(x, y)
-#     x_axis.append(i)
-#     ydata.append(y[0])
-#     yin.append(x[0])
 
-for i in range(0, 1300):
+for i in range(0, 1300): #sampling dari n = 0 hingga 1299
     x[1] = x[0]
     x[0] = 1
     y = motor(x, y)
